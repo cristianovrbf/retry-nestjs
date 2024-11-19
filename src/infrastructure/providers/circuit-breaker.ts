@@ -4,7 +4,6 @@ import { catchError, map } from 'rxjs';
 export interface CircuitBreakerOptions {
   successThreshold: number;
   failureThreshold: number;
-  halfOpenWaitTime: number;
   halfOpenAttemptsThreshold: number;
   openStateTime: number;
 }
@@ -20,31 +19,24 @@ export class CircuitBreaker {
   private successCount: number = 0;
   private nextAttempt: number;
   private halfOpenAttemptsCount: number = 0;
-  private lastFailureTimestamp: number;
   private readonly options: CircuitBreakerOptions;
-  private requestCounter: number = 0;
 
   constructor(options: CircuitBreakerOptions) {
     this.options = {
-      successThreshold:
-        options && options.successThreshold ? options.successThreshold : 3,
-      failureThreshold:
-        options && options.failureThreshold ? options.failureThreshold : 3,
-      halfOpenAttemptsThreshold:
-        options && options.halfOpenAttemptsThreshold
-          ? options.halfOpenAttemptsThreshold
-          : 3,
-      halfOpenWaitTime:
-        options && options.halfOpenWaitTime ? options.halfOpenWaitTime : 500,
-      openStateTime:
-        options && options.openStateTime ? options.openStateTime : 500,
+      successThreshold: options?.successThreshold
+        ? options.successThreshold
+        : 3,
+      failureThreshold: options?.failureThreshold
+        ? options.failureThreshold
+        : 3,
+      halfOpenAttemptsThreshold: options?.halfOpenAttemptsThreshold
+        ? options.halfOpenAttemptsThreshold
+        : 3,
+      openStateTime: options?.openStateTime ? options.openStateTime : 500,
     };
   }
 
   exec(next: CallHandler): any {
-    this.requestCounter++;
-    console.log(`REQUEST [${this.requestCounter}]`);
-
     if (this.currentState == this.CIRCUIT_STATES.OPEN) {
       return this.handleOpened(next);
     } else if (this.currentState == this.CIRCUIT_STATES.HALFOPEN) {
@@ -104,9 +96,7 @@ export class CircuitBreaker {
     return next.handle().pipe(
       map((data) => {
         this.successCount++;
-        if (
-          this.halfOpenAttemptsCount >= this.options.halfOpenAttemptsThreshold
-        ) {
+        if (this.successCount >= this.options.successThreshold) {
           console.log('Transferring the Circuit to Close state!');
           this.transferState('close'.toUpperCase());
           this.halfOpenAttemptsCount = 0;
@@ -116,25 +106,20 @@ export class CircuitBreaker {
       catchError((err) => {
         this.registerFailure();
         console.log('receive an error from request.');
-        if (this.failureCount >= this.options.failureThreshold) {
-          this.halfOpenAttemptsCount = 0;
-          console.log('Transferring the Circuit to Open state!');
+        this.halfOpenAttemptsCount = 0;
+        console.log('Transferring the Circuit to Open state!');
 
-          this.transferState('open'.toUpperCase());
-        }
+        this.transferState('open'.toUpperCase());
         throw new Error('Internal server error');
       }),
     );
   }
 
   /*
-        THE LOGIC OF THE REGISTER OF A NEW FAILURE IS COMPLETE.
-        THIS WILL VERIFY IF THE DIFFERENCE OF THE CURRENT TIMESTAMP AND THE LAST FAILURE TIMESTAMP IS BIGGER THAN 10S IF IS WILL SET FAILURE COUNT EQUAL ZERO
-        AFTER THIS WILL REGISTER THE CURRENT TIMESTAMP ON LAST FAILURE TIMESTAMP AND INCREMENT THE FAILURE COUNT
+        THE LOGIC OF THE REGISTER OF A NEW FAILURE.
     */
   private registerFailure() {
     this.failureCount++;
-    this.lastFailureTimestamp = Date.now();
   }
 
   /*
