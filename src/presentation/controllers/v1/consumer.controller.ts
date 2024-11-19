@@ -1,10 +1,10 @@
 import { ConsumeExternalServiceUseCase } from "@/application/usecases/consume-external-service";
-import { CircuitBreakerInterceptor } from "@/infrastructure/interceptors/circuit-breaker.interceptor";
+import { RetryInterceptor } from "@/infrastructure/interceptors/retry.interceptor";
 import { Controller, Get, UseInterceptors } from "@nestjs/common";
 
 
 @Controller()
-@UseInterceptors(CircuitBreakerInterceptor)
+@UseInterceptors(RetryInterceptor)
 export class ConsumerV1Controller{
 
     constructor(
