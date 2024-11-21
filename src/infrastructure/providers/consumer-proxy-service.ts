@@ -8,7 +8,7 @@ export class ConsumerProxyService implements IConsumerProxyProvider{
 
 
     async consume(): Promise<ConsumeExternalServiceOutput> {
-        const response = await axios.get("http://localhost:3001/");
+        const response = await axios.get("http://localhost:3000/");
 
         return {
             success: response.data.success,

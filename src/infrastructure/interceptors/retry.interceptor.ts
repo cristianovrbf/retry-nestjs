@@ -11,7 +11,7 @@ export class RetryInterceptor implements NestInterceptor {
   constructor() {
     let circuitBreakerOpts: RetryOptions = {
       maxRetries: 3,
-      waitTime: 1000,
+      waitTime: 100,
       power: 2
     };
 
